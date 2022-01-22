@@ -42,9 +42,6 @@
 #include "SX1268Interface.h"
 #include "LLCC68Interface.h"
 
-#ifdef NRF52_SERIES
-#include "variant.h"
-#endif
 
 using namespace concurrency;
 
@@ -208,6 +205,7 @@ class ButtonThread : public OSThread
         userButton.attachClick(userButtonPressed);
         userButton.attachDuringLongPress(userButtonPressedLong);
         userButton.attachDoubleClick(userButtonDoublePressed);
+        userButton.attachMultiClick(userButtonMultiPressed);
         userButton.attachLongPressStart(userButtonPressedLongStart);
         userButton.attachLongPressStop(userButtonPressedLongStop);
         wakeOnIrq(BUTTON_PIN, FALLING);
@@ -302,8 +300,9 @@ class ButtonThread : public OSThread
     static void userButtonPressedLong()
     {
         // DEBUG_MSG("Long press!\n");
+#ifndef NRF52_SERIES
         screen->adjustBrightness();
-
+#endif
         // If user button is held down for 5 seconds, shutdown the device.
         if (millis() - longPressTime > 5 * 1000) {
 #ifdef TBEAM_V10
@@ -315,6 +314,7 @@ class ButtonThread : public OSThread
             // Do actual shutdown when button released, otherwise the button release
             // may wake the board immediatedly.
             if (!shutdown_on_long_stop) {
+                screen->startShutdownScreen();
                 DEBUG_MSG("Shutdown from long press");
                 playBeep();
                 ledOff(PIN_LED1);
@@ -336,6 +336,14 @@ class ButtonThread : public OSThread
 #endif
     }
 
+    static void userButtonMultiPressed()
+    {
+#ifndef NO_ESP32
+        clearNVS();
+#endif
+    }
+
+
     static void userButtonPressedLongStart()
     {
         DEBUG_MSG("Long press start!\n");
@@ -348,6 +356,7 @@ class ButtonThread : public OSThread
         longPressTime = 0;
         if (shutdown_on_long_stop) {
             playShutdownMelody();
+            delay(3000);
             power->shutdown();
         }
     }
@@ -387,6 +396,8 @@ void setup()
         consoleInit(); // Set serial baud rate and init our mesh console
     }
 #endif
+
+    DEBUG_MSG("\n\n//\\ E S H T /\\ S T / C\n\n");
 
     initDeepSleep();
 
@@ -688,8 +699,9 @@ axpDebugOutput.setup();
 #endif
 
 uint32_t rebootAtMsec; // If not zero we will reboot at this time (used to reboot shortly after the update completes)
+uint32_t shutdownAtMsec; // If not zero we will shutdown at this time (used to shutdown from python or mobile client)
 
-void rebootCheck()
+void powerCommandsCheck()
 {
     if (rebootAtMsec && millis() > rebootAtMsec) {
 #ifndef NO_ESP32
@@ -697,6 +709,30 @@ void rebootCheck()
         ESP.restart();
 #else
         DEBUG_MSG("FIXME implement reboot for this platform");
+#endif
+    }
+
+#if NRF52_SERIES
+    if (shutdownAtMsec) {
+        screen->startShutdownScreen();
+        playBeep();
+        ledOff(PIN_LED1);
+        ledOff(PIN_LED2);
+    }
+#endif
+
+    if (shutdownAtMsec && millis() > shutdownAtMsec) {
+        DEBUG_MSG("Shutting down from admin command\n");
+#ifdef TBEAM_V10
+        if (axp192_found == true) {
+            setLed(false);
+            power->shutdown();
+        }
+#elif NRF52_SERIES
+        playShutdownMelody();
+        power->shutdown();
+#else
+        DEBUG_MSG("FIXME implement shutdown for this platform");
 #endif
     }
 }
@@ -719,7 +755,7 @@ void loop()
 #ifdef NRF52_SERIES
     nrf52Loop();
 #endif
-    rebootCheck();
+    powerCommandsCheck();
 
     // For debugging
     // if (rIf) ((RadioLibInterface *)rIf)->isActivelyReceiving();

@@ -26,7 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "MeshService.h"
 #include "NodeDB.h"
 #include "Screen.h"
-#include "fonts.h"
 #include "gps/GeoCoord.h"
 #include "gps/RTC.h"
 #include "graphics/images.h"
@@ -217,6 +216,14 @@ static void drawFrameBluetooth(OLEDDisplay *display, OLEDDisplayUiState *state, 
     strcpy(buf, name);
     strcat(buf, getDeviceName());
     display->drawString(64 + x, 48 + y, buf);
+}
+
+static void drawFrameShutdown(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
+{
+    display->setTextAlignment(TEXT_ALIGN_CENTER);
+
+    display->setFont(FONT_MEDIUM);
+    display->drawString(64 + x, 26 + y, "Shutting down...");
 }
 
 static void drawFrameFirmware(OLEDDisplay *display, OLEDDisplayUiState *state, int16_t x, int16_t y)
@@ -820,6 +827,9 @@ void Screen::setup()
     nodeStatusObserver.observe(&nodeStatus->onNewStatus);
     if (textMessagePlugin)
         textMessageObserver.observe(textMessagePlugin);
+
+    // Plugins can notify screen about refresh
+    MeshPlugin::observeUIEvents(&uiFrameEventObserver);
 }
 
 void Screen::forceDisplay()
@@ -877,6 +887,9 @@ int32_t Screen::runOnce()
         case Cmd::PRINT:
             handlePrint(cmd.print_text);
             free(cmd.print_text);
+            break;
+        case Cmd::START_SHUTDOWN_SCREEN:
+            handleShutdownScreen();
             break;
         default:
             DEBUG_MSG("BUG: invalid cmd\n");
@@ -1041,6 +1054,18 @@ void Screen::handleStartBluetoothPinScreen(uint32_t pin)
 
     ui.disableAllIndicators();
     ui.setFrames(btFrames, 1);
+    setFastFramerate();
+}
+
+void Screen::handleShutdownScreen()
+{
+    DEBUG_MSG("showing shutdown screen\n");
+    showingNormalScreen = false;
+
+    static FrameCallback shutdownFrames[] = {drawFrameShutdown};
+
+    ui.disableAllIndicators();
+    ui.setFrames(shutdownFrames, 1);
     setFastFramerate();
 }
 
@@ -1452,6 +1477,25 @@ int Screen::handleTextMessage(const MeshPacket *packet)
 {
     if (showingNormalScreen) {
         setFrames(); // Regen the list of screens (will show new text message)
+    }
+
+    return 0;
+}
+
+int Screen::handleUIFrameEvent(const UIFrameEvent *event)
+{
+    if (showingNormalScreen) {
+        if (event->frameChanged)
+        {
+            setFrames(); // Regen the list of screens (will show new text message)
+        }
+        else if (event->needRedraw)
+        {
+            setFastFramerate();
+            // TODO: We might also want switch to corresponding frame,
+            //       but we don't know the exact frame number.
+            //ui.switchToFrame(0);
+        }
     }
 
     return 0;

@@ -27,6 +27,9 @@
 #define CHANNEL_UTILIZATION_PERIODS 6
 #define SECONDS_PER_PERIOD 3600
 #define PERIODS_TO_LOG 24
+#define MINUTES_IN_HOUR 60
+#define SECONDS_IN_MINUTE 60
+#define MS_IN_HOUR (MINUTES_IN_HOUR * SECONDS_IN_MINUTE * 1000)
 
 
 enum reportTypes { TX_LOG, RX_LOG, RX_ALL_LOG };
@@ -43,9 +46,12 @@ class AirTime : private concurrency::OSThread
 
     void logAirtime(reportTypes reportType, uint32_t airtime_ms);
     float channelUtilizationPercent();
-    uint32_t channelUtilization[CHANNEL_UTILIZATION_PERIODS];
+    float utilizationTXPercent();
 
-    uint8_t currentPeriodIndex();
+    float UtilizationPercentTX();
+    uint32_t channelUtilization[CHANNEL_UTILIZATION_PERIODS];
+    uint32_t utilizationTX[MINUTES_IN_HOUR];
+
     void airtimeRotatePeriod();
     uint8_t getPeriodsToLog();
     uint32_t getSecondsPerPeriod();
@@ -55,6 +61,7 @@ class AirTime : private concurrency::OSThread
   private:
     bool firstTime = true;
     uint8_t lastUtilPeriod = 0;
+    uint8_t lastUtilPeriodTX = 0;
     uint32_t secSinceBoot = 0;
 
     struct airtimeStruct {
@@ -63,6 +70,10 @@ class AirTime : private concurrency::OSThread
         uint32_t periodRX_ALL[PERIODS_TO_LOG]; // AirTime received regardless of valid mesh packet. Could include noise.
         uint8_t lastPeriodIndex;
     } airtimes;
+
+    uint8_t getPeriodUtilMinute();
+    uint8_t getPeriodUtilHour();
+    uint8_t currentPeriodIndex();
 
   protected:
     virtual int32_t runOnce() override;
