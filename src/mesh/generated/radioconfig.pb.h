@@ -95,7 +95,10 @@ typedef enum _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType {
     RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DS18B20 = 1,
     RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DHT12 = 2,
     RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DHT21 = 3,
-    RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DHT22 = 4
+    RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DHT22 = 4,
+    RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_BME280 = 5,
+    RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_BME680 = 6,
+    RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MCP9808 = 7
 } RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType;
 
 /* Struct definitions */
@@ -182,6 +185,8 @@ typedef struct _RadioConfig_UserPreferences {
     char canned_message_plugin_allow_input_source[16];
     char canned_message_plugin_messages[200];
     bool canned_message_plugin_send_bell;
+    bool mqtt_encryption_enabled;
+    float adc_multiplier_override;
 } RadioConfig_UserPreferences;
 
 typedef struct _RadioConfig {
@@ -220,8 +225,8 @@ typedef struct _RadioConfig {
 #define _InputEventChar_ARRAYSIZE ((InputEventChar)(InputEventChar_KEY_BACK+1))
 
 #define _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MIN RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DHT11
-#define _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MAX RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DHT22
-#define _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_ARRAYSIZE ((RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType)(RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_DHT22+1))
+#define _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MAX RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MCP9808
+#define _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_ARRAYSIZE ((RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType)(RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MCP9808+1))
 
 
 #ifdef __cplusplus
@@ -230,9 +235,9 @@ extern "C" {
 
 /* Initializer values for message structs */
 #define RadioConfig_init_default                 {false, RadioConfig_UserPreferences_init_default}
-#define RadioConfig_UserPreferences_init_default {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, _RegionCode_MIN, _ChargeCurrent_MIN, 0, _LocationSharing_MIN, _GpsOperation_MIN, 0, 0, 0, 0, 0, 0, 0, "", 0, _GpsCoordinateFormat_MIN, 0, 0, 0, 0, 0, {0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MIN, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, 0, 0, 0, 0, 0, _InputEventChar_MIN, _InputEventChar_MIN, _InputEventChar_MIN, 0, "", "", 0}
+#define RadioConfig_UserPreferences_init_default {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, _RegionCode_MIN, _ChargeCurrent_MIN, 0, _LocationSharing_MIN, _GpsOperation_MIN, 0, 0, 0, 0, 0, 0, 0, "", 0, _GpsCoordinateFormat_MIN, 0, 0, 0, 0, 0, {0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MIN, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, 0, 0, 0, 0, 0, _InputEventChar_MIN, _InputEventChar_MIN, _InputEventChar_MIN, 0, "", "", 0, 0, 0}
 #define RadioConfig_init_zero                    {false, RadioConfig_UserPreferences_init_zero}
-#define RadioConfig_UserPreferences_init_zero    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, _RegionCode_MIN, _ChargeCurrent_MIN, 0, _LocationSharing_MIN, _GpsOperation_MIN, 0, 0, 0, 0, 0, 0, 0, "", 0, _GpsCoordinateFormat_MIN, 0, 0, 0, 0, 0, {0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MIN, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, 0, 0, 0, 0, 0, _InputEventChar_MIN, _InputEventChar_MIN, _InputEventChar_MIN, 0, "", "", 0}
+#define RadioConfig_UserPreferences_init_zero    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, _RegionCode_MIN, _ChargeCurrent_MIN, 0, _LocationSharing_MIN, _GpsOperation_MIN, 0, 0, 0, 0, 0, 0, 0, "", 0, _GpsCoordinateFormat_MIN, 0, 0, 0, 0, 0, {0, 0, 0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, _RadioConfig_UserPreferences_EnvironmentalMeasurementSensorType_MIN, 0, 0, 0, 0, 0, 0, 0, 0, "", "", 0, 0, 0, 0, 0, 0, _InputEventChar_MIN, _InputEventChar_MIN, _InputEventChar_MIN, 0, "", "", 0, 0, 0}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define RadioConfig_UserPreferences_position_broadcast_secs_tag 1
@@ -316,6 +321,8 @@ extern "C" {
 #define RadioConfig_UserPreferences_canned_message_plugin_allow_input_source_tag 171
 #define RadioConfig_UserPreferences_canned_message_plugin_messages_tag 172
 #define RadioConfig_UserPreferences_canned_message_plugin_send_bell_tag 173
+#define RadioConfig_UserPreferences_mqtt_encryption_enabled_tag 174
+#define RadioConfig_UserPreferences_adc_multiplier_override_tag 175
 #define RadioConfig_preferences_tag              1
 
 /* Struct field encoding specification for nanopb */
@@ -406,7 +413,9 @@ X(a, STATIC,   SINGULAR, UENUM,    rotary1_event_press, 166) \
 X(a, STATIC,   SINGULAR, BOOL,     canned_message_plugin_enabled, 170) \
 X(a, STATIC,   SINGULAR, STRING,   canned_message_plugin_allow_input_source, 171) \
 X(a, STATIC,   SINGULAR, STRING,   canned_message_plugin_messages, 172) \
-X(a, STATIC,   SINGULAR, BOOL,     canned_message_plugin_send_bell, 173)
+X(a, STATIC,   SINGULAR, BOOL,     canned_message_plugin_send_bell, 173) \
+X(a, STATIC,   SINGULAR, BOOL,     mqtt_encryption_enabled, 174) \
+X(a, STATIC,   SINGULAR, FLOAT,    adc_multiplier_override, 175)
 #define RadioConfig_UserPreferences_CALLBACK NULL
 #define RadioConfig_UserPreferences_DEFAULT NULL
 
@@ -418,8 +427,8 @@ extern const pb_msgdesc_t RadioConfig_UserPreferences_msg;
 #define RadioConfig_UserPreferences_fields &RadioConfig_UserPreferences_msg
 
 /* Maximum encoded size of messages (where known) */
-#define RadioConfig_size                         792
-#define RadioConfig_UserPreferences_size         789
+#define RadioConfig_size                         801
+#define RadioConfig_UserPreferences_size         798
 
 #ifdef __cplusplus
 } /* extern "C" */

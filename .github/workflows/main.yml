@@ -3,19 +3,21 @@ on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches: [ master ]
-  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '**.yml'
+      - 'version.properties'
+      
+  # Note: This is different from "pull_request". Need to specify ref when doing checkouts.
+  pull_request_target:
     branches: [ master ]
+    paths-ignore:
+      - '**.md'
+      - '**.yml'
 
 jobs:
-  # setup:
-  # runs-on: ubuntu-latest
-  # steps:
-  
-  # - name: Startup
-  #   run: echo "No action setup currently needed, skipping..."
 
-  ci-build:
-    # needs: setup
+  ci-check:
     runs-on: ubuntu-latest
     steps:
 
@@ -23,6 +25,12 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: 'recursive'
+        ref: ${{github.event.pull_request.head.ref}}
+        repository: ${{github.event.pull_request.head.repo.full_name}}
+
+    - name: Install cppcheck
+      run: |
+        sudo apt-get install -y cppcheck
 
     - name: Setup Python
       uses: actions/setup-python@v2
@@ -36,9 +44,42 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip
 
-    #- name: Install linux apt packages
-    #  run: |
-    #    sudo apt-get install -y libgpiod-dev
+    - name: Upgrade python tools and install platformio
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U platformio
+
+    - name: Upgrade platformio
+      run: |
+        pio upgrade
+
+    - name: Check everything
+      run: bin/check-all.sh
+
+
+
+  ci-build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+        ref: ${{github.event.pull_request.head.ref}}
+        repository: ${{github.event.pull_request.head.repo.full_name}}
+
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.x
+
+    - name: Cache python libs
+      uses: actions/cache@v1
+      id: cache-pip # needed in if test
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip
 
     - name: Upgrade python tools
       # We actually want to run this every time
@@ -81,22 +122,23 @@ jobs:
         echo "Simulator started, launching python test..."
         python3 -c 'from meshtastic.test import testSimulator; testSimulator()'
 
-    # - name: Build for tbeam
-    #   run: platformio run -e tbeam
-    # - name: Build for heltec
-    #   run: platformio run -e heltec
-    # - name: Build for wisblock RAK4631
-    #   run: platformio run -e rak4631
+    - name: Cat bin/build-all.sh
+      run: |
+        cat bin/build-all.sh
 
     - name: Build everything
       run: bin/build-all.sh
 
+    - name: Get release version string
+      run: echo "::set-output name=version::$(./bin/buildinfo.py long)"
+      id: version
+
     - name: Store binaries as an artifact
       uses: actions/upload-artifact@v2
       with:
-        name: built
-        path: release/archive/firmware-*.zip
-        retention-days: 30
+        name: firmware-${{ steps.version.outputs.version }}.zip
+        path: release/archive/firmware-${{ steps.version.outputs.version }}.zip
+        retention-days: 90
 
     - name: Store debugging elf files as an artifact
       uses: actions/upload-artifact@v2
@@ -104,3 +146,18 @@ jobs:
         name: debug-elfs
         path: release/archive/elfs-*.zip
         retention-days: 7
+
+    - name: Download firmware.zip
+      uses: actions/download-artifact@master
+      with:
+        name: firmware-${{ steps.version.outputs.version }}.zip
+        path: ./
+
+    - name: Pull request artifacts
+      if: ${{ github.event_name == 'pull_request_target' || github.event_name == 'pull_request' }}
+      uses: gavv/pull-request-artifacts@v1.0.0
+      with:
+        commit: ${{ (github.event.pull_request_target || github.event.pull_request).head.sha }}
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts-branch: artifacts
+        artifacts: ./firmware-${{ steps.version.outputs.version }}.zip

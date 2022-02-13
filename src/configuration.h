@@ -161,6 +161,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // This string must exactly match the case used in release file names or the android updater won't work
 #define HW_VENDOR HardwareModel_DIY_V1
 
+#elif defined(RAK_11200)
+// This string must exactly match the case used in release file names or the android updater won't work
+#define HW_VENDOR HardwareModel_RAK11200
+
 #elif defined(ARDUINO_HELTEC_WIFI_LORA_32_V2)
 
 #ifdef HELTEC_V2_0
@@ -198,6 +202,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #elif defined(GENIEBLOCKS)
 // This string must exactly match the case used in release file names or the android updater won't work
 #define HW_VENDOR HardwareModel_GENIEBLOCKS
+
+#elif defined(PRIVATE_HW)
+// This string must exactly match the case used in release file names or the android updater won't work
+#define HW_VENDOR HardwareModel_PRIVATE_HW
 
 #endif
 
